@@ -95,6 +95,13 @@ f_automatic() {
 ###########################################################################################
 ### Begin of script
 
+# if executed by the webgui
+if [ "$1" = "webgui" ]; then
+	f_log "$(basename $0) executed by WebGUI-plugin"
+	f_automatic
+	exit 0
+fi
+
 # check available diskspace on systemdrive
 if $DEBUG; then echo "SYSDRIVE: $SYSDRIVE"; fi
 SYSDRIVE_AVAILABLE=$(df -B KB /dev/$SYSDRIVE | grep / | awk '{print $4}' | sed 's/kB//g')
@@ -123,13 +130,6 @@ if [ -d $TMPFOLDER ]; then
 fi
 # create $TMPFOLDER again
 mkdir $TMPFOLDER
-
-# if executed by the webgui
-if [ "$1" = "webgui" ]; then
-	f_log "$(basename $0) executed by WebGUI-plugin"
-	f_automatic
-	exit 0
-fi
 
 whiptail --title "${TITLE}" --backtitle "${BACKTITLE}" --yesno --defaultno "This script will help to collect some Information about your OMV-System to help the supporters\n\nPlease read the following instructions carefully!\nTo collect the Info, the following steps are required:\n1. select the Infos the script should collect\n2. have a look at the collected infos\n3. optionally you can upload the infos to sprunge.us\n\n\nContinue?" 20 78
 
