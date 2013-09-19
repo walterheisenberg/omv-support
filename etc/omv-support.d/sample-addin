@@ -28,7 +28,7 @@ DESCRIPTION="Sample - Sample Info AddIn"
 
 # don't change this ------------------------------------------
 # import the needed Libs
-. ./omv-support-libs
+. . /etc/omv-support.d/omv-support-libs
 
 # Reads the filename
 FILENAME="$1"

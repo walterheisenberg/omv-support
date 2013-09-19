@@ -16,29 +16,42 @@
 ###########################################################################################
 ### Variables
 
-# import OMV-variables
-. /etc/default/openmediavault
-
-# Sample - possible usefull variables
-# OMV_DPKGARCHIVE_DIR="/var/cache/openmediavault/archives"
-# OMV_DOCUMENTROOT_DIR="/var/www/openmediavault"
-# OMV_CACHE_DIR="/var/cache/openmediavault"
-
-VERSION="0.1.8"
+VERSION="0.1.9"
 SCRIPTDATE="$(date +%y%m%d-%H%M%S)"
 TITLE="OMV-Supportscript v. $VERSION"
 BACKTITLE="OpenMediaVault Support"
 OMVAPT="/etc/apt/sources.list.d"
 TMPFOLDER="/tmp/omv-support"
+SUPPORTFILE_DIR="/etc/omv-support.d"
 # Detecting Systemdrive (/dev/sdX and UUID). It will be used later
 SYSDRIVE_UUID="$(cat /etc/fstab | egrep "UUID.* / " | awk '{print $1}' | sed 's/UUID=//g')"
 SYSDRIVE="$(ls -l /dev/disk/by-uuid/ | grep $SYSDRIVE_UUID | awk '{print $11}' | sed 's/..\/..\///g')"
+DEBUG=false
 
 # echo "SYSDRIVE_UUID: $SYSDRIVE_UUID"
 # echo "SYSDRIVE: /dev/$SYSDRIVE"
 
+# import OMV-variables
+. /etc/default/openmediavault
+# enable this later!!!
+# if ! $DEBUG; then
+# 	if [ -f /etc/default/openmediavault ]; then
+# 		. /etc/default/openmediavault
+# 	else
+# 		echo "OpenMediaVault seems not to be installed"
+# 		echo "No defaults for OpenMediaVault found in /etc/default/openmediavault"
+# 		echo "exiting ..."
+# 		echo
+# 		exit 1
+# 	fi
+# fi
+# Sample - possible usefull variables from /etc/default/openmediavault
+# OMV_DPKGARCHIVE_DIR="/var/cache/openmediavault/archives"
+# OMV_DOCUMENTROOT_DIR="/var/www/openmediavault"
+# OMV_CACHE_DIR="/var/cache/openmediavault"
+
 # import the needed Libs
-. ./omv-support-libs
+. /usr/local/bin/omv-support-libs
 
 ###########################################################################################
 ### Functions
@@ -59,13 +72,23 @@ f_update-to-latest() {
 }
 
 f_automatic() {
-SELECTION="00-basic-info 01-sources 02-packages 03-filesystem 04-raid 06-samba 99-other"  # only the default-scripts are executed, more could be added later
-# 05-free_space --> left out of the list, takes too long to finish
-for I in $SELECTION; do
-	#eval $(\. $(echo ${I%%-*} | sed 's/"//g')-* $(echo ${I%%-*} | sed 's/"//g')-*) # executes the AddIn and gives the filename as a variable -> basename $0 is not working in the AddIn-files
-	. ./"$I" "$I"
-done
-cat $TMPFOLDER/* > $TMPFOLDER/ready_to_upload
+	SELECTION="00-basic-info 01-sources 02-packages 03-filesystem 04-raid 06-samba 99-other"  # only the default-scripts are executed, more could be added later
+	# 05-free_space --> left out of the list, takes too long to finish
+
+	for I in $SELECTION; do
+		#eval $(\. $(echo ${I%%-*} | sed 's/"//g')-* $(echo ${I%%-*} | sed 's/"//g')-*) # executes the AddIn and gives the filename as a variable -> basename $0 is not working in the AddIn-files
+		. "$SUPPORTFILE_DIR/$I" "$I"
+	done
+
+	# output to file
+	#cat $TMPFOLDER/* > $TMPFOLDER/ready_to_upload
+
+	# Hi ryecoaaron,
+	# don't know if you need the code below. The script should automatically output info to stdout
+	# enable it maybe for testing
+	
+	# output to stdout (second time). The first time is in the f_log-function
+	#cat $TMPFOLDER/*
 }
 
 
@@ -73,7 +96,7 @@ cat $TMPFOLDER/* > $TMPFOLDER/ready_to_upload
 ### Begin of script
 
 # check available diskspace on systemdrive
-#echo "SYSDRIVE: $SYSDRIVE"
+if $DEBUG; then echo "SYSDRIVE: $SYSDRIVE"; fi
 SYSDRIVE_AVAILABLE=$(df -B KB /dev/$SYSDRIVE | grep / | awk '{print $4}' | sed 's/kB//g')
 
 #echo "SYSDRIVE_AVAILABLE: $SYSDRIVE_AVAILABLE"
@@ -113,12 +136,24 @@ whiptail --title "${TITLE}" --backtitle "${BACKTITLE}" --yesno --defaultno "This
 if [ $? = 1 ]; then f_aborted; fi
 
 ### Dynamic Menu:
+# first read all the AddIns and remove the "/etc/omv-support.d"
+ADDIN_FILES="$(for ADDINS in $SUPPORTFILE_DIR/[0-9][0-9]-*; do echo -n "$ADDINS" | sed 's/\/etc\/omv-support\.d//g' ; done)"
+
 # To create dynamic menu, you have to change the IFS
 # See: http://stackoverflow.com/questions/14191797/inserting-code-from-a-string-or-array-in-to-whiptail
 # There's maybe another (better) solution, but I haven't found one. Please let me know, if YOU know one :)
 oIFS="$IFS"
 IFS="/"
-MENUENTRIES="$(for MENUPOINTS in [0-9][0-9]-*; do echo -ne "${MENUPOINTS%%-*}/$(grep DESCRIPTION $MENUPOINTS | sed 's/DESCRIPTION="\(.*\)"/\1/g')/OFF /"; done)"
+# create the menu-entries
+# sample: 73/some description/OFF/
+#
+# 1. echo $ADDIN_FILES and remove the first slash "/"
+# 2. remove all behing the two digits to create the number (##)
+# 3. grep the DESCRIPTION from the file and add it
+# 4. add /OFF so the menuentry for whiptail is complete
+MENUENTRIES="$(for MENUPOINTS in $(echo "$ADDIN_FILES" | sed 's/^\///g'); do \
+if [ $MENUPOINTS = "00-basic-info" ]; then continue; fi; \
+echo -ne "${MENUPOINTS%%-*}/$(grep DESCRIPTION "$SUPPORTFILE_DIR/$MENUPOINTS" | sed 's/DESCRIPTION="\(.*\)"/\1/g')/OFF/"; done)"
 
 ## Checklist
 RESULT="$(whiptail --title "${TITLE}" --backtitle "${BACKTITLE}" --checklist "Choose the infos to collect with SPACEBAR:" 26 58 10 $MENUENTRIES 3>&1 1>&2 2>&3)"
@@ -133,26 +168,15 @@ fi
 IFS=$oIFS # switch it back to normal
 
 ## basic info - collected in every run
-. 00-basic-info 00-basic-info
-# TMPFILE="$TMPFOLDER/00-basic_info"
-# f_log "##########################"
-# f_log "Basic Info:"
-# f_log
-# f_log "Script started: $SCRIPTDATE"
-# f_log
-# f_log "Script Version: $VERSION"
-# f_log "Debian-Version: $(cat /etc/debian_version)"
-# f_log "OMV-Version: $(dpkg -l | egrep "openmediavault[^-]" | awk '{print $3}')"
-# f_log
-# f_log "System Drive: (can vary at every boot)"
-# f_log "/dev/$SYSDRIVE"
-# f_log
-# f_log "smartctl -i /dev/$SYSDRIVE"
-# smartctl -i /dev/$SYSDRIVE 2>&1 | tee -a $TMPFILE
+. /etc/omv-support.d/00-basic-info 00-basic-info
 
 # execution of the selected scripts
-for I in $SELECTION; do
-	eval $(\. $(echo ${I%%-*} | sed 's/"//g')-* $(echo ${I%%-*} | sed 's/"//g')-*) # executes the AddIn and gives the filename as a variable -> basename $0 is not working in the AddIn-files
+for I in $RESULT; do # gives the selected number, e.g. 04
+	# gives back all files in $SUPPORTFILE_DIR with the number in front, e.g. 04-raid
+	for J in $SUPPORTFILE_DIR/$(echo ${I} | sed 's/"//g')-*; do
+		. $J $(echo ${J##*/}) # executes the AddIn and gives the filename as a variable -> basename $0 is not working in the AddIn-files
+	done
+	
 done
 
 # the user can check the collected info

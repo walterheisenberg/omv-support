@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # import the needed Libs
-. ./omv-support-libs
+. . /etc/omv-support.d/omv-support-libs
 
 # Describe your Info-AddIn here
 DESCRIPTION="RAID Info"
