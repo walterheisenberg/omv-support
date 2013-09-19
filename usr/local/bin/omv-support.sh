@@ -1,4 +1,4 @@
-#/!bin/bash
+#!/bin/bash
 ## OMV-Support script
 
 # R. Lindlein aka Solo0815 in the OMV-Forums
@@ -16,7 +16,7 @@
 ###########################################################################################
 ### Variables
 
-VERSION="0.1.9"
+VERSION="0.2.0"
 SCRIPTDATE="$(date +%y%m%d-%H%M%S)"
 TITLE="OMV-Supportscript v. $VERSION"
 BACKTITLE="OpenMediaVault Support"
@@ -61,15 +61,14 @@ f_aborted() {
 	exit 0
 }
 
-# Upgrade to latest version
-# not functional atm
-f_update-to-latest() {
-    apt-get -y clean
-    apt-get -y update
-
-    apt-get -y upgrade
-    apt-get -y dist-upgrade
-}
+# Upgrade to latest version, not functional atm
+# f_update-to-latest() {
+#     apt-get -y clean
+#     apt-get -y update
+# 
+#     apt-get -y upgrade
+#     apt-get -y dist-upgrade
+# }
 
 f_automatic() {
 	SELECTION="00-basic-info 01-sources 02-packages 03-filesystem 04-raid 06-samba 99-other"  # only the default-scripts are executed, more could be added later
@@ -167,13 +166,19 @@ fi
 # http://stackoverflow.com/questions/1970180/whiptail-how-to-redirect-output-to-environment-variable
 IFS=$oIFS # switch it back to normal
 
-## basic info - collected in every run
-. /etc/omv-support.d/00-basic-info 00-basic-info
+# ## basic info - collected in every run
+# . /etc/omv-support.d/00-basic-info 00-basic-info
 
+# add 00 to the selection
+RESULT="$(echo $RESULT | sed 's/^/"00" /g')"
+echo "RESULT: $RESULT"
 # execution of the selected scripts
 for I in $RESULT; do # gives the selected number, e.g. 04
+	echo "for schleife 1"
 	# gives back all files in $SUPPORTFILE_DIR with the number in front, e.g. 04-raid
 	for J in $SUPPORTFILE_DIR/$(echo ${I} | sed 's/"//g')-*; do
+		echo "for schleife 2"
+		echo "J: $J --- ${J##*/}"
 		. $J $(echo ${J##*/}) # executes the AddIn and gives the filename as a variable -> basename $0 is not working in the AddIn-files
 	done
 	
@@ -185,7 +190,7 @@ if [ $? = 0 ]; then
 	# view every file in $TMPFOLDER
 	for SUPPORTFILES in $TMPFOLDER/*; do
 		# view it in CLI
-		cat $SUPPORTFILES
+		#cat $SUPPORTFILES
 		# view it in whiptail
 		whiptail --clear --textbox --title "$SUPPORTFILES" --scrolltext "$SUPPORTFILES" 32 78
 	done

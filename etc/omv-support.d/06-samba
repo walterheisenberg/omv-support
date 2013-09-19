@@ -5,7 +5,7 @@ DESCRIPTION="SMB - Samba Info"
 
 # don't change this ------------------------------------------
 # import the needed Libs
-. . /etc/omv-support.d/omv-support-libs
+. /usr/local/bin/omv-support-libs
 
 # Reads the filename
 FILENAME="$1"

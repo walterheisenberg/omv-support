@@ -1,16 +1,13 @@
 #!/bin/bash
 
 # import the needed Libs
-. /etc/omv-support.d/omv-support-libs
+. /usr/local/bin/omv-support-libs
 
 # Describe your Info-AddIn here
 DESCRIPTION="Basic Info"
 
 # Reads the filename
 FILENAME="$1"
-
-# Define the tmp-file on the filesystem
-TMPFILE="$TMPFOLDER/$FILENAME"
 
 ## basic info - collected in every run
 f_log "##########################"

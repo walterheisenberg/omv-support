@@ -15,10 +15,10 @@
 # f_log "write something here"
 # echoes 'write something here' to stdout and the logfile
 
-# save the script to /etc/omv-support.d/:digit:digit:-yourname
-# e.g. /etc/omv-support.d/56-mysql-info
+# save the script to /usr/local/bin/:digit:digit:-yourname
+# e.g. /usr/local/bin/56-mysql-info
 
-# you can also have a look at other AddIns in /etc/omv-support.d
+# you can also have a look at other AddIns in /usr/local/bin
 
 # the OpenMediaVault Support-script imports your Info-AddIn
 # automatically
@@ -28,7 +28,7 @@ DESCRIPTION="Sample - Sample Info AddIn"
 
 # don't change this ------------------------------------------
 # import the needed Libs
-. . /etc/omv-support.d/omv-support-libs
+. /usr/local/bin/omv-support-libs
 
 # Reads the filename
 FILENAME="$1"
